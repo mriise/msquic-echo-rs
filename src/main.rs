@@ -1207,7 +1207,7 @@ mod test {
         sync::Arc,
     };
 
-    use bytes::Bytes;
+    use bytes::{BufMut, Bytes};
     use msquic::{
         BufferRef, Configuration, CredentialConfig, CredentialFlags, DatagramSendState,
         Registration, RegistrationConfig, Settings,
@@ -1314,11 +1314,30 @@ mod test {
                     .open_bidi_stream()
                     .await
                     .expect("client failed to open stream");
+                // echo protocol expects a 1-byte length prefix
+                assert!(
+                    client_msg.len() < 255,
+                    "test message too long for length-prefixed echo"
+                );
+                let mut send_buf = bytes::BytesMut::with_capacity(1 + client_msg.len());
+                send_buf.put_u8(client_msg.len() as u8);
+                send_buf.extend_from_slice(&client_msg);
                 stream
-                    .send(client_msg.clone(), true)
+                    .send(send_buf.freeze(), true)
                     .await
                     .expect("client failed to send");
                 let echoed = stream.recv().await.expect("missing echo");
+                assert!(
+                    !echoed.is_empty(),
+                    "echo payload missing length prefix and body"
+                );
+                let expected_len = echoed[0] as usize;
+                assert_eq!(
+                    expected_len + 1,
+                    echoed.len(),
+                    "echo payload length prefix mismatch"
+                );
+                let echoed = echoed.slice(1..);
                 conn.shutdown(msquic::ConnectionShutdownFlags::NONE);
                 echoed
             })
