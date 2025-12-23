@@ -686,7 +686,3 @@ checksum = "e17bb3549cc1321ae1296b9cdc2698e2b6cb1992adfa19a8c72e5b7a738f44cd"
 dependencies = [
  "time",
 ]
-
-[[patch.unused]]
-name = "msquic"
-version = "2.6.0-beta"

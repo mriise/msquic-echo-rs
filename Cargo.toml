@@ -4,8 +4,8 @@ version = "0.1.0"
 rust-version = "1.75"
 edition = "2021"
 
-[patch.crates-io]
-msquic = { path = "vendor/msquic" }
+# [patch.crates-io]
+# msquic = { path = "vendor/msquic" }
 
 [dependencies]
 msquic = { version = "2.5.1-beta", default-features = false, features = ["find"]}
