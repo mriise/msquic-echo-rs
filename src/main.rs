@@ -131,6 +131,7 @@ impl EchoServerConfig {
         eprintln!(
             "Windows: --self-signed installs to CurrentUser cert store and uses its thumbprint."
         );
+        eprintln!("Non-Windows: --self-signed uses `openssl` to generate temporary PEM files.");
     }
 
     fn credential_config(&self) -> Result<CredentialConfig, Box<dyn std::error::Error>> {
@@ -157,10 +158,10 @@ impl EchoServerConfig {
     }
 
     fn generate_self_signed_cert() -> Result<ServerCert, String> {
-        if cfg!(windows) {
-            return Self::generate_self_signed_cert_windows();
-        }
-        Self::generate_self_signed_cert()
+        #[cfg(windows)]
+        return Self::generate_self_signed_cert_windows();
+        #[cfg(not(windows))]
+        return Self::generate_self_signed_cert_pem()
     }
 
     #[cfg(windows)]
@@ -188,27 +189,76 @@ impl EchoServerConfig {
 
     #[cfg(not(windows))]
     fn generate_self_signed_cert_pem() -> Result<ServerCert, String> {
-        let subject_alt_names = vec![
-            "localhost".to_string(),
-            "127.0.0.1".to_string(),
-            "::1".to_string(),
-        ];
-        let cert = rcgen::generate_simple_self_signed(subject_alt_names)
-            .map_err(|e| format!("Failed to generate self-signed cert: {e}"))?;
-        let cert_pem = cert
-            .serialize_pem()
-            .map_err(|e| format!("Failed to serialize cert: {e}"))?;
-        let key_pem = cert.serialize_private_key_pem();
-
-        let dir = std::env::temp_dir().join("msquic-echo-self-signed");
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|e| format!("System clock error: {e}"))?
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!(
+            "msquic-echo-self-signed-{}-{nanos}",
+            std::process::id()
+        ));
         std::fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create temp cert dir {}: {e}", dir.display()))?;
+
         let cert_path = dir.join("cert.pem");
         let key_path = dir.join("key.pem");
-        std::fs::write(&cert_path, cert_pem)
-            .map_err(|e| format!("Failed to write cert {}: {e}", cert_path.display()))?;
-        std::fs::write(&key_path, key_pem)
-            .map_err(|e| format!("Failed to write key {}: {e}", key_path.display()))?;
+        let openssl_cfg_path = dir.join("openssl.cnf");
+        let openssl_cfg = r#"[ req ]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+
+[ req_distinguished_name ]
+CN = localhost
+
+[ v3_req ]
+basicConstraints = CA:FALSE
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+IP.2 = ::1
+"#;
+        std::fs::write(&openssl_cfg_path, openssl_cfg).map_err(|e| {
+            format!(
+                "Failed to write openssl config {}: {e}",
+                openssl_cfg_path.display()
+            )
+        })?;
+
+        let output = std::process::Command::new("openssl")
+            .args([
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-nodes",
+                "-sha256",
+                "-days",
+                "365",
+                "-keyout",
+            ])
+            .arg(&key_path)
+            .args(["-out"])
+            .arg(&cert_path)
+            .args(["-config"])
+            .arg(&openssl_cfg_path)
+            .args(["-extensions", "v3_req"])
+            .output()
+            .map_err(|e| {
+                format!(
+                    "Failed to run openssl to generate a self-signed certificate: {e} (install openssl or pass --cert/--key)"
+                )
+            })?;
+        if !output.status.success() {
+            return Err(format!(
+                "openssl self-signed certificate generation failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
 
         Ok(ServerCert::CertFile {
             cert: cert_path.display().to_string(),
