@@ -888,7 +888,7 @@ impl Connection {
     }
 
     pub fn shutdown(&self, flags: ConnectionShutdownFlags) {
-        let _ = self.conn.shutdown(flags, 0);
+        self.conn.shutdown(flags, 0);
     }
 
     /// Get a clonable handle for sending datagrams from multiple tasks.
@@ -1106,8 +1106,8 @@ async fn echo_stream(mut stream: EchoStream) -> Result<(), Status> {
 
 async fn echo_connection(mut conn: Connection) -> Result<(), Status> {
     loop {
-        let mut next_stream = conn.ctx.bidi.next();
-        let mut next_datagram = conn.ctx.datagram.next();
+        let next_stream = conn.ctx.bidi.next();
+        let next_datagram = conn.ctx.datagram.next();
         tokio::pin!(next_stream);
         tokio::pin!(next_datagram);
 
