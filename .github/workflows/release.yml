@@ -20,10 +20,12 @@ jobs:
             target: x86_64-pc-windows-gnu
             archive: zip
             vcpkg_root: 'C:\vcpkg'
+            vcpkg_triplet: x64-windows
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             archive: tar.gz tar.xz tar.zst
             vcpkg_root: /usr/local/share/vcpkg
+            vcpkg_triplet: x64-linux
     steps:
       - uses: actions/checkout@master
       - name: Ensure vcpkg cache directory
@@ -50,7 +52,29 @@ jobs:
           VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}/vcpkg-binary-cache
           VCPKG_BINARY_SOURCES: 'clear;files,${{ runner.temp }}/vcpkg-binary-cache,readwrite'
           VCPKG_ROOT: ${{ matrix.vcpkg_root }}
-        run: vcpkg install msquic
+          VCPKG_DEFAULT_TRIPLET: ${{ matrix.vcpkg_triplet }}
+          VCPKG_TARGET_TRIPLET: ${{ matrix.vcpkg_triplet }}
+        run: vcpkg install msquic --triplet ${{ matrix.vcpkg_triplet }}
+
+      - name: Make msquic available for build script (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          libdir="${VCPKG_ROOT}/installed/x64-linux/lib"
+          sudo mkdir -p /usr/lib/x86_64-linux-gnu
+          sudo cp -f ${libdir}/libmsquic.so* /usr/lib/x86_64-linux-gnu/
+          ls -l /usr/lib/x86_64-linux-gnu/libmsquic.so*
+
+      - name: Make msquic available for build script (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $libdir = Join-Path $env:VCPKG_ROOT "installed\\${{ matrix.vcpkg_triplet }}\\lib"
+          $bindir = Join-Path $env:VCPKG_ROOT "installed\\${{ matrix.vcpkg_triplet }}\\bin"
+          if (-not (Test-Path $libdir)) { throw "msquic lib directory missing: $libdir" }
+          if (-not (Test-Path $bindir)) { throw "msquic bin directory missing: $bindir" }
+          Get-ChildItem $libdir
+          Get-ChildItem $bindir
       
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
