@@ -79,7 +79,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt
-          toolchain: "1.92"
+          toolchain: "1.92.0"
           target: ${{ matrix.target }}
           
       - name: Rustfmt Check
