@@ -189,6 +189,8 @@ impl EchoServerConfig {
 
     #[cfg(not(windows))]
     fn generate_self_signed_cert_pem() -> Result<ServerCert, String> {
+        use std::time::{SystemTime, UNIX_EPOCH};
+
         let nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|e| format!("System clock error: {e}"))?
