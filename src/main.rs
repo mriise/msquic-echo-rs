@@ -2,11 +2,14 @@ use std::{net::SocketAddr, pin::Pin, sync::Arc};
 
 use bytes::{BufMut, Bytes, BytesMut};
 use msquic::{
-    BufferRef, CertificateFile, CertificateHash, Configuration, ConnectionEvent, ConnectionRef,
+    BufferRef, CertificateFile, Configuration, ConnectionEvent, ConnectionRef,
     ConnectionShutdownFlags, Credential, CredentialConfig, DatagramSendState, ListenerEvent,
     ListenerRef, ReceiveFlags, Registration, RegistrationConfig, SendFlags, Settings, Status,
     StatusCode, StreamEvent, StreamOpenFlags, StreamRef, StreamShutdownFlags, StreamStartFlags,
 };
+
+#[cfg(windows)]
+use msquic::CertificateHash;
 
 use futures::{
     channel::{mpsc, oneshot},
@@ -134,6 +137,7 @@ impl EchoServerConfig {
         eprintln!("Non-Windows: --self-signed uses `openssl` to generate temporary PEM files.");
     }
 
+    #[allow(unused_variables)]
     fn credential_config(&self) -> Result<CredentialConfig, Box<dyn std::error::Error>> {
         let cred_cfg = match &self.cert {
             ServerCert::Thumbprint(tp) => {
@@ -465,6 +469,7 @@ struct BufPtr(*const std::ffi::c_void);
 unsafe impl Send for BufPtr {}
 unsafe impl Sync for BufPtr {}
 
+#[allow(dead_code)]
 struct SendBufCtx {
     data: Bytes,
     buffers: Box<[BufferRef]>,
@@ -522,6 +527,7 @@ pub struct EchoSendStream {
     sctx: SendStreamReceiveCtx,
 }
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct EchoRecvStream {
     stream: Arc<msquic::Stream>,
     rctx: RecvStreamReceiveCtx,
@@ -1054,6 +1060,7 @@ impl EchoListener {
         Ok(Self { inner, conn: rx })
     }
 
+    #[allow(dead_code)]
     /// Get the inner listener ref.
     pub fn get_ref(&self) -> &msquic::Listener {
         &self.inner
