@@ -9,8 +9,8 @@ use msquic::{
 };
 
 use futures::{
-    StreamExt,
     channel::{mpsc, oneshot},
+    StreamExt,
 };
 use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
@@ -34,8 +34,7 @@ async fn main() {
 }
 
 fn init_tracing() {
-    let env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     let _ = tracing_subscriber::fmt()
         .with_env_filter(env_filter)
         .with_target(false)
@@ -1378,10 +1377,7 @@ mod test {
                     "unexpected datagram send state: {:?}",
                     send_state
                 );
-                let echoed = conn
-                    .recv_datagram()
-                    .await
-                    .expect("missing datagram echo");
+                let echoed = conn.recv_datagram().await.expect("missing datagram echo");
                 conn.shutdown(msquic::ConnectionShutdownFlags::NONE);
                 echoed
             })
@@ -1435,7 +1431,11 @@ mod test {
                 }
                 let mut s = String::from_utf8_lossy(&out.stdout).to_string();
                 s.retain(|c| !c.is_whitespace());
-                if s.is_empty() { None } else { Some(s) }
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(s)
+                }
             }
 
             let thumbprint = read_thumbprint().or_else(|| {
