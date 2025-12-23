@@ -10,6 +10,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ runner.temp }}/vcpkg-binary-cache
+      VCPKG_BINARY_SOURCES: 'clear;files,${{ runner.temp }}/vcpkg-binary-cache,readwrite'
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +25,23 @@ jobs:
             archive: tar.gz tar.xz tar.zst
     steps:
       - uses: actions/checkout@master
+      - name: Ensure vcpkg cache directory
+        shell: pwsh
+        run: |
+          $path = "$env:VCPKG_DEFAULT_BINARY_CACHE"
+          if (!(Test-Path -LiteralPath $path)) {
+            New-Item -ItemType Directory -Path $path -Force | Out-Null
+          }
+
+      - name: Cache vcpkg artifacts
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ matrix.target }}-msquic-${{ hashFiles('**/vcpkg*.json') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ matrix.target }}-msquic-
+            vcpkg-${{ runner.os }}-msquic-
+
       - name: Install Msquic
         run: vcpkg install msquic
       
