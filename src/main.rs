@@ -1384,7 +1384,7 @@ mod test {
                     let Some(mut conn) = conn else {
                         break;
                     };
-                    let mut shutdown = conn.get_shutdown_waiter();
+                    let shutdown = conn.get_shutdown_waiter();
                     tokio::spawn(async move {
                         while let Some(dgram) = conn.recv_datagram().await {
                             if let Err(err) = conn.send_datagram(dgram.clone()).await {
