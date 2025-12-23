@@ -1,0 +1,17 @@
+[package]
+name = "msquic-echo-rs"
+version = "0.1.0"
+edition = "2024"
+
+
+[patch.crates-io]
+msquic = { path = "vendor/msquic" }
+
+[dependencies]
+msquic = { version = "2.6.0-beta", features = []}
+futures = { version = "0.3", default-features = false, features = ["std"]}
+bytes = "1"
+tracing = "0.1.44"
+tracing-subscriber = {version = "0.3.22", features = ["env-filter", "fmt"] }
+tokio = {version = "1.48.0", features = ["sync", "rt", "rt-multi-thread", "time", "macros", "signal"] }
+rcgen = "0.14.6"
