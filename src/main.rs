@@ -161,7 +161,7 @@ impl EchoServerConfig {
         #[cfg(windows)]
         return Self::generate_self_signed_cert_windows();
         #[cfg(not(windows))]
-        return Self::generate_self_signed_cert_pem()
+        return Self::generate_self_signed_cert_pem();
     }
 
     #[cfg(windows)]
