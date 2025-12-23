@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 
-[patch.crates-io]
-msquic = { path = "vendor/msquic" }
+# [patch.crates-io]
+# msquic = { path = "vendor/msquic" }
 
 [dependencies]
-msquic = { version = "2.6.0-beta", default-features = false, features = ["find"]}
+msquic = { version = "2.5.1-beta", default-features = false, features = ["find"]}
 futures = { version = "0.3", default-features = false, features = ["std"]}
 bytes = "1"
 tracing = "0.1.44"
