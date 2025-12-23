@@ -901,7 +901,7 @@ impl Connection {
 
     /// attach to an accepted connection
     pub(crate) fn attach(
-        inner: msquic::Connection,
+        inner: msquic::ConnectionRef,
         config: Arc<Configuration>,
     ) -> Result<Self, Status> {
         tracing::debug!("Connection::attach - setting up callback handler");
@@ -916,8 +916,7 @@ impl Connection {
         tracing::debug!("Connection::attach - done");
         // Use into_raw to prevent drop, then reconstruct with from_raw
         // This matches the pattern from msquic's own tests
-        let raw_handle = unsafe { inner.into_raw() };
-        let conn = Arc::new(unsafe { msquic::Connection::from_raw(raw_handle) });
+        let conn = Arc::new(unsafe { msquic::Connection::from_raw(inner.as_raw()) });
 
         let opener = StreamOpener::new(conn.clone());
 
